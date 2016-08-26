@@ -6,6 +6,12 @@ from datetime import datetime
 import configparser
 import os
 import sys
+import httplib2
+from apiclient import discovery
+import oauth2client
+from oauth2client import client
+from oauth2client import tools
+
 
 # TODO: beschraenken auf grashuepfer news gruppe / liste von user_ids
 
@@ -45,6 +51,8 @@ def cmd_add(bot, update):
     datetime_str, sep, event_name = args.partition(' ')
     event_datetime = parse_datetime(datetime_str)
 
+    # see quickstart.py, calendarid von grashuepfer nutzen
+
     bot.sendMessage(update.message.chat_id, 
             text='date: {0}, event: {1}'.format(event_datetime, event_name))
 
@@ -61,8 +69,57 @@ def cmd_rm(bot, update):
 
     print("event_nr =", event_nr)
 
+
+def get_calendar_service(client_secret_file):
+    def get_credentials():
+        """Gets valid user credentials from storage.
+    
+        If nothing has been stored, or if the stored credentials are invalid,
+        the OAuth2 flow is completed to obtain the new credentials.
+    
+        Returns:
+            Credentials, the obtained credential.
+        """
+        
+        SCOPES = "https://www.googleapis.com/auth/calendar"
+        APPLICATION_NAME = "Google-Calendar-API Client"
+
+        home_dir = os.path.expanduser('~')
+        credential_dir = os.path.join(home_dir, '.credentials')
+        if not os.path.exists(credential_dir):
+            os.makedirs(credential_dir)
+        credential_path = os.path.join(credential_dir,
+                                       'calendar-grashuepfer.json')
+
+        try:
+            import argparse
+            flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
+        except ImportError:
+            flags = None
+        
+        store = oauth2client.file.Storage(credential_path)
+        credentials = store.get()
+        if not credentials or credentials.invalid:
+            flow = client.flow_from_clientsecrets(client_secret_file, SCOPES)
+            flow.user_agent = APPLICATION_NAME
+            if flags:
+                credentials = tools.run_flow(flow, store, flags)
+            else: # Needed only for compatibility with Python 2.6
+                credentials = tools.run(flow, store)
+            print('Storing credentials to ' + credential_path)
+        return credentials
+
+    credentials = get_credentials()
+    http = credentials.authorize(httplib2.Http())
+    service = discovery.build('calendar', 'v3', http=http)
+    return service
+
+
 def read_config(config_file):
-    required_keys = ['TelegramAccessToken']
+    required_keys = [
+            'TelegramAccessToken',
+            'CalendarClientSecretFile'
+            ]
 
     if not os.path.isfile(config_file):
         print('error: {0} not found'.format(config_file))
@@ -80,6 +137,7 @@ def read_config(config_file):
 def main():
     config = read_config('config.ini')
 
+    calendar_service = get_calendar_service(config['CalendarClientSecretFile'])
     updater = Updater(config['TelegramAccessToken'])
     
     updater.dispatcher.add_handler(CommandHandler('add', cmd_add))
