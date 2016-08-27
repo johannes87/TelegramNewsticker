@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from telegram.ext import Updater, CommandHandler
+import telegram.ext
 import caldav
 from datetime import datetime
 import configparser
@@ -14,6 +14,9 @@ from oauth2client import tools
 
 
 # TODO: beschraenken auf grashuepfer news gruppe / liste von user_ids
+
+calendar_service = None
+config = None
 
 def get_cmd_arguments(text):
     return text.partition(' ')[2]
@@ -38,7 +41,8 @@ def parse_datetime(datetime_str):
             break
         except ValueError:
             continue
-
+    
+    # TODO "25.8" => 25.8.2017 
     if dt.year == 1900:  # use current year when no year is given
         dt = datetime(datetime.now().year, dt.month, dt.day, 
                 dt.hour, dt.minute, dt.second)
@@ -46,19 +50,43 @@ def parse_datetime(datetime_str):
     return dt
 
 
+def calendar_add(event_datetime, event_name):
+    pass
+
+
+def calendar_list_events():
+    # TODO: bug reporten: wenn laufzeitfehler entstehen (z.b. nicht-existenter
+    # methodenaufruf), wird keine exception/warning auf der konsole ausgegeben
+
+    # eventsResult = calendar_service.events().list(
+    #     calendarId=config['CalendarID'], timeMin=now, 
+    #     orderBy='startTime').execute()
+    # events = eventsResult.get('items', [])
+
+    print("asdf")
+
+    # for event in events:
+    #     print(event)
+
+
+def calendar_remove(event_id):
+    pass
+
+
 def cmd_add(bot, update):
     args = get_cmd_arguments(update.message.text)
     datetime_str, sep, event_name = args.partition(' ')
     event_datetime = parse_datetime(datetime_str)
-
-    # see quickstart.py, calendarid von grashuepfer nutzen
+    
+    calendar_add(event_datetime, event_name)
 
     bot.sendMessage(update.message.chat_id, 
             text='date: {0}, event: {1}'.format(event_datetime, event_name))
 
 
 def cmd_ls(bot, update):
-    pass
+    calendar_list_events()
+
 
 def cmd_rm(bot, update):
     try:
@@ -118,7 +146,8 @@ def get_calendar_service(client_secret_file):
 def read_config(config_file):
     required_keys = [
             'TelegramAccessToken',
-            'CalendarClientSecretFile'
+            'CalendarClientSecretFile',
+            'CalendarID'
             ]
 
     if not os.path.isfile(config_file):
@@ -135,14 +164,17 @@ def read_config(config_file):
     return config['DEFAULT']
 
 def main():
+    global config
     config = read_config('config.ini')
-
-    calendar_service = get_calendar_service(config['CalendarClientSecretFile'])
-    updater = Updater(config['TelegramAccessToken'])
     
-    updater.dispatcher.add_handler(CommandHandler('add', cmd_add))
-    updater.dispatcher.add_handler(CommandHandler('ls', cmd_ls))
-    updater.dispatcher.add_handler(CommandHandler('rm', cmd_rm))
+    global calendar_service
+    calendar_service = get_calendar_service(config['CalendarClientSecretFile'])
+
+    updater = telegram.ext.Updater(config['TelegramAccessToken'])
+    
+    updater.dispatcher.add_handler(telegram.ext.CommandHandler('add', cmd_add))
+    updater.dispatcher.add_handler(telegram.ext.CommandHandler('ls', cmd_ls))
+    updater.dispatcher.add_handler(telegram.ext.CommandHandler('rm', cmd_rm))
     updater.start_polling()
 
     updater.idle()
