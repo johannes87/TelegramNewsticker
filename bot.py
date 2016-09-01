@@ -2,7 +2,7 @@
 
 import telegram.ext
 import caldav
-from datetime import datetime
+import datetime
 import configparser
 import os
 import sys
@@ -37,16 +37,16 @@ def parse_date_future(date_str):
 
     for fmt in formats_to_try:
         try:
-            dt = datetime.strptime(date_str, fmt)
+            dt = datetime.datetime.strptime(date_str, fmt)
             break
         except ValueError:
             continue
     
     if dt.year == 1900:  # use current/next year when no year is given
-        dt = datetime(datetime.now().year, dt.month, dt.day, 
+        dt = datetime.datetime(datetime.datetime.now().year, dt.month, dt.day,
                 dt.hour, dt.minute, dt.second)
-        if dt < datetime.now():
-            dt = datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        if dt < datetime.datetime.now():
+            dt = datetime.datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     
     return dt
 
@@ -67,7 +67,7 @@ def calendar_add(event_datetime, event_name):
 
 
 def calendar_get_events():
-    now = datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
 
     eventsResult = calendar_service.events().list(
         calendarId=config['CalendarID'], 
@@ -86,10 +86,12 @@ def calendar_get_events():
         if 'dateTime' in event_start:
             event_start_datetime = dateutil.parser.parse(event_start['dateTime'])
         else:
-            event_start_datetime = dateutil.parser.parse(event_start['date'])
+            event_start_datetime = dateutil.parser.parse(event_start['date']).date()
 
         ret_events.append({'datetime': event_start_datetime, 'name': event_summary})
-
+    
+    # technically, the key 'datetime' is not correct, as it can either contain
+    # a datetime.date or a datetime.datetime event
     return ret_events 
 
 
@@ -112,10 +114,14 @@ def cmd_add(bot, update):
 def cmd_ls(bot, update):
     events = calendar_get_events()
     message = ""
-
+    
     for event in events:
-        message += "*{0}*: {1}\n\n".format(
-                event['datetime'].strftime('%d.%m.%Y'), event['name'])
+        if type(event['datetime']) is datetime.date:
+            datetime_str = event['datetime'].strftime('%d.%m.%Y')
+        else:
+            datetime_str = event['datetime'].strftime('%d.%m.%Y %H:%M')
+
+        message += "*{0}*: {1}\n\n".format(datetime_str, event['name'])
 
     bot.sendMessage(update.message.chat_id, 
             text=message, 
