@@ -11,6 +11,7 @@ from apiclient import discovery
 import oauth2client
 from oauth2client import client
 from oauth2client import tools
+import logging
 
 
 # TODO: beschraenken auf grashuepfer news gruppe / liste von user_ids
@@ -169,6 +170,10 @@ def main():
     
     global calendar_service
     calendar_service = get_calendar_service(config['CalendarClientSecretFile'])
+def setup_logging():
+    logging.basicConfig(
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            level=logging.ERROR)
 
     updater = telegram.ext.Updater(config['TelegramAccessToken'])
     
@@ -180,6 +185,7 @@ def main():
     updater.idle()
 
 
+    setup_logging()
 if __name__ == '__main__':
     main()
 
