@@ -12,6 +12,7 @@ import oauth2client
 from oauth2client import client
 from oauth2client import tools
 import logging
+import dateutil.parser
 
 
 # TODO: beschraenken auf grashuepfer news gruppe / liste von user_ids
@@ -22,15 +23,13 @@ config = None
 def get_cmd_arguments(text):
     return text.partition(' ')[2]
 
-def parse_datetime(datetime_str):
-    datetime_str = datetime_str.strip('.')
+
+def parse_date_future(date_str):
+    date_str = date_str.strip('.')
 
     formats_to_try = [
-            #'%d.%m.%Y %H:%M',
-            #'%d.%m.%y %H:%M',
             '%d.%m.%Y',
             '%d.%m.%y',
-            #'%d.%m %H:%M',
             '%d.%m'
             ]
 
@@ -38,36 +37,60 @@ def parse_datetime(datetime_str):
 
     for fmt in formats_to_try:
         try:
-            dt = datetime.strptime(datetime_str, fmt)
+            dt = datetime.strptime(date_str, fmt)
             break
         except ValueError:
             continue
     
-    # TODO "25.8" => 25.8.2017 
-    if dt.year == 1900:  # use current year when no year is given
+    if dt.year == 1900:  # use current/next year when no year is given
         dt = datetime(datetime.now().year, dt.month, dt.day, 
                 dt.hour, dt.minute, dt.second)
+        if dt < datetime.now():
+            dt = datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     
     return dt
 
 
 def calendar_add(event_datetime, event_name):
-    pass
+    event_date_str = event_datetime.strftime('%Y-%m-%d')
+
+    event_body = {
+            'summary': event_name, 
+            'start': { 'date': event_date_str },
+            'end': { 'date': event_date_str }
+            }
+
+    new_event = calendar_service.events().insert(
+            calendarId=config['CalendarID'], body=event_body).execute()
+
+    return new_event
 
 
-def calendar_list_events():
-    # TODO: bug reporten: wenn laufzeitfehler entstehen (z.b. nicht-existenter
-    # methodenaufruf), wird keine exception/warning auf der konsole ausgegeben
+def calendar_get_events():
+    now = datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
 
-    # eventsResult = calendar_service.events().list(
-    #     calendarId=config['CalendarID'], timeMin=now, 
-    #     orderBy='startTime').execute()
-    # events = eventsResult.get('items', [])
+    eventsResult = calendar_service.events().list(
+        calendarId=config['CalendarID'], 
+        timeMin=now,
+        orderBy='startTime',
+        singleEvents=True,
+        ).execute()
+    events = eventsResult.get('items', [])
+    
+    ret_events = []
 
-    print("asdf")
+    for event in events:
+        event_start = event['start']
+        event_summary = event['summary']
 
-    # for event in events:
-    #     print(event)
+        if 'dateTime' in event_start:
+            event_start_datetime = dateutil.parser.parse(event_start['dateTime'])
+        else:
+            event_start_datetime = dateutil.parser.parse(event_start['date'])
+
+        ret_events.append({'datetime': event_start_datetime, 'name': event_summary})
+
+    return ret_events 
 
 
 def calendar_remove(event_id):
@@ -76,27 +99,33 @@ def calendar_remove(event_id):
 
 def cmd_add(bot, update):
     args = get_cmd_arguments(update.message.text)
-    datetime_str, sep, event_name = args.partition(' ')
-    event_datetime = parse_datetime(datetime_str)
+    date_str, sep, event_name = args.partition(' ')
+    event_datetime = parse_date_future(date_str)
     
-    calendar_add(event_datetime, event_name)
+    new_event = calendar_add(event_datetime, event_name)
 
     bot.sendMessage(update.message.chat_id, 
-            text='date: {0}, event: {1}'.format(event_datetime, event_name))
+            text='Event "{0}" am {1} hinzugefügt'.format(
+                new_event['summary'], new_event['start']['date']))
 
 
 def cmd_ls(bot, update):
-    calendar_list_events()
+    events = calendar_get_events()
+    message = ""
+
+    for event in events:
+        message += "*{0}*: {1}\n\n".format(
+                event['datetime'].strftime('%d.%m.%Y'), event['name'])
+
+    bot.sendMessage(update.message.chat_id, 
+            text=message, 
+            parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def cmd_rm(bot, update):
-    try:
-        event_nr = int(get_cmd_arguments(update.message.text))
-    except ValueError:
-        print("/rm: argument '{0}' invalid".format(get_cmd_arguments(update.message.text)))
-        return
-
-    print("event_nr =", event_nr)
+    # XXX idee: /del 14.9 stupferich => das loeschen was am meisten matcht, und nur wenn eindeutig
+    args = get_cmd_arguments(update.message.text)
+    
 
 
 def get_calendar_service(client_secret_file):
@@ -164,28 +193,34 @@ def read_config(config_file):
 
     return config['DEFAULT']
 
+def setup_logging():
+    logging.basicConfig(
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            level=logging.ERROR)
+
+def setup_telegram():
+    updater = telegram.ext.Updater(config['TelegramAccessToken'])
+
+    updater.dispatcher.add_handler(telegram.ext.CommandHandler('add', cmd_add))
+    updater.dispatcher.add_handler(telegram.ext.CommandHandler('ls', cmd_ls))
+    updater.dispatcher.add_handler(telegram.ext.CommandHandler('list', cmd_ls))
+    updater.dispatcher.add_handler(telegram.ext.CommandHandler('rm', cmd_rm))
+
+    updater.start_polling()
+    updater.idle()
+
+
 def main():
     global config
     config = read_config('config.ini')
     
     global calendar_service
     calendar_service = get_calendar_service(config['CalendarClientSecretFile'])
-def setup_logging():
-    logging.basicConfig(
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            level=logging.ERROR)
-
-    updater = telegram.ext.Updater(config['TelegramAccessToken'])
     
-    updater.dispatcher.add_handler(telegram.ext.CommandHandler('add', cmd_add))
-    updater.dispatcher.add_handler(telegram.ext.CommandHandler('ls', cmd_ls))
-    updater.dispatcher.add_handler(telegram.ext.CommandHandler('rm', cmd_rm))
-    updater.start_polling()
-
-    updater.idle()
-
-
     setup_logging()
+    setup_telegram()
+
+
 if __name__ == '__main__':
     main()
 
