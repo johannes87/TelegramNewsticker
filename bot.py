@@ -70,7 +70,9 @@ def calendar_add(event_datetime, event_name):
 
 
 def calendar_get_events():
-    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+    now = datetime.datetime.utcnow()
+    now -= datetime.timedelta(days=1) # ensure same-day events are shown
+    now = now.isoformat() + 'Z' # 'Z' indicates UTC time
 
     eventsResult = calendar_service.events().list(
         calendarId=config['CalendarID'], 
