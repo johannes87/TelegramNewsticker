@@ -16,6 +16,7 @@ import dateutil.parser
 
 
 # TODO: beschraenken auf grashuepfer news gruppe / liste von user_ids
+# idee: beschraenken auf alle nutzer in der "Grashuepfer News" Gruppe
 
 calendar_service = None
 config = None
@@ -54,6 +55,7 @@ def parse_date_future(date_str):
     return dt
 
 
+# TODO: vllt. eher calendar_add_date?
 def calendar_add(event_datetime, event_name):
     event_date_str = event_datetime.strftime('%Y-%m-%d')
 
@@ -97,10 +99,6 @@ def calendar_get_events():
     return ret_events 
 
 
-def calendar_remove(event_id):
-    pass
-
-
 def cmd_add(bot, update):
     args = get_cmd_arguments(update.message.text)
     date_str, sep, event_name = args.partition(' ')
@@ -133,13 +131,6 @@ def cmd_ls(bot, update):
     bot.sendMessage(update.message.chat_id, 
             text=message, 
             parse_mode=telegram.ParseMode.MARKDOWN)
-
-
-def cmd_rm(bot, update):
-    # XXX idee: /del 14.9 stupferich => das loeschen was am meisten matcht, und nur wenn eindeutig
-    args = get_cmd_arguments(update.message.text)
-    
-
 
 def get_calendar_service(client_secret_file):
     def get_credentials():
@@ -217,7 +208,6 @@ def setup_telegram():
     updater.dispatcher.add_handler(telegram.ext.CommandHandler('add', cmd_add))
     updater.dispatcher.add_handler(telegram.ext.CommandHandler('ls', cmd_ls))
     updater.dispatcher.add_handler(telegram.ext.CommandHandler('list', cmd_ls))
-    updater.dispatcher.add_handler(telegram.ext.CommandHandler('rm', cmd_rm))
 
     updater.start_polling()
     updater.idle()
