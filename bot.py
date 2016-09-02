@@ -46,9 +46,9 @@ def parse_date_future(date_str):
         return
 
     if dt.year == 1900:  # use current/next year when no year is given
-        dt = datetime.datetime(datetime.datetime.now().year, dt.month, dt.day,
-                dt.hour, dt.minute, dt.second)
-        if dt < datetime.datetime.now():
+        dt = dt.replace(year=datetime.datetime.now().year)
+
+        if dt.date() < datetime.datetime.now().date():
             dt = datetime.datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     
     return dt
