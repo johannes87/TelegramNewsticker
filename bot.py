@@ -41,7 +41,10 @@ def parse_date_future(date_str):
             break
         except ValueError:
             continue
-    
+
+    if dt is None:
+        return
+
     if dt.year == 1900:  # use current/next year when no year is given
         dt = datetime.datetime(datetime.datetime.now().year, dt.month, dt.day,
                 dt.hour, dt.minute, dt.second)
@@ -100,6 +103,11 @@ def cmd_add(bot, update):
     args = get_cmd_arguments(update.message.text)
     date_str, sep, event_name = args.partition(' ')
     event_datetime = parse_date_future(date_str)
+
+    if event_datetime is None:
+        bot.sendMessage(update.message.chat_id,
+                text="Wie bitte?! Ich konnte das Datum nicht verstehen. Verwende bitte keine Leerzeichen in der Datumsangabe")
+        return
     
     new_event = calendar_add(event_datetime, event_name)
 
