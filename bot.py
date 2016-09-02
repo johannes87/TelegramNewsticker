@@ -80,18 +80,15 @@ def calendar_get_events():
     ret_events = []
 
     for event in events:
-        event_start = event['start']
         event_summary = event['summary']
 
-        if 'dateTime' in event_start:
-            event_start_datetime = dateutil.parser.parse(event_start['dateTime'])
+        if 'dateTime' in event['start']:
+            event_start = dateutil.parser.parse(event['start']['dateTime'])
         else:
-            event_start_datetime = dateutil.parser.parse(event_start['date']).date()
+            event_start = dateutil.parser.parse(event['start']['date']).date()
 
-        ret_events.append({'datetime': event_start_datetime, 'name': event_summary})
+        ret_events.append({'start': event_start, 'name': event_summary})
     
-    # technically, the key 'datetime' is not correct, as it can either contain
-    # a datetime.date or a datetime.datetime event
     return ret_events 
 
 
@@ -116,10 +113,10 @@ def cmd_ls(bot, update):
     message = ""
     
     for event in events:
-        if type(event['datetime']) is datetime.date:
-            datetime_str = event['datetime'].strftime('%d.%m.%Y')
+        if type(event['start']) is datetime.date:
+            datetime_str = event['start'].strftime('%d.%m.%Y')
         else:
-            datetime_str = event['datetime'].strftime('%d.%m.%Y %H:%M')
+            datetime_str = event['start'].strftime('%d.%m.%Y %H:%M')
 
         message += "*{0}*: {1}\n\n".format(datetime_str, event['name'])
 
