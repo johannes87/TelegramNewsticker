@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import telegram.ext
-import caldav
 import datetime
 import configparser
 import os
@@ -27,6 +26,7 @@ def get_cmd_arguments(text):
 
 def parse_date_future(date_str):
     date_str = date_str.strip('.')
+
 
     formats_to_try = [
             '%d.%m.%Y',
