@@ -47,22 +47,20 @@ def parse_date_future(date_str):
         if dt.date() < datetime.datetime.now().date():
             dt = datetime.datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     
-    return dt
-
-
+    return dt.date()
 
 
 def cmd_add(bot, update):
     args = get_cmd_arguments(update.message.text)
     date_str, sep, event_name = args.partition(' ')
-    event_datetime = parse_date_future(date_str)
+    event_date = parse_date_future(date_str)
 
-    if event_datetime is None:
+    if event_date is None:
         bot.sendMessage(update.message.chat_id,
                 text="Wie bitte?! Ich konnte das Datum nicht verstehen. Verwende bitte keine Leerzeichen in der Datumsangabe")
         return
     
-    new_event = calendar.add_date_event(event_datetime, event_name)
+    new_event = calendar.add_date_event(event_date, event_name)
 
     bot.sendMessage(update.message.chat_id, 
             text='Event "{0}" am {1} hinzugefügt'.format(
