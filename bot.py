@@ -59,6 +59,11 @@ def cmd_add(bot, update):
         bot.sendMessage(update.message.chat_id,
                 text="Wie bitte?! Ich konnte das Datum nicht verstehen. Verwende bitte keine Leerzeichen in der Datumsangabe")
         return
+
+    if event_name.strip() == '':
+        bot.sendMessage(update.message.chat_id,
+                text='Der Name für das Event fehlt!')
+        return
     
     new_event = calendar.add_date_event(event_date, event_name)
 
