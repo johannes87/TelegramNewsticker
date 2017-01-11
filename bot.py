@@ -57,7 +57,8 @@ def cmd_add(bot, update):
 
     if event_date is None:
         bot.sendMessage(update.message.chat_id,
-                text="Wie bitte?! Ich konnte das Datum nicht verstehen. Verwende bitte keine Leerzeichen in der Datumsangabe")
+                text="Ich konnte das Datum nicht verstehen. Verwende bitte keine Leerzeichen in der Datumsangabe")
+        # TODO: flexibleres datumsformat erlauben
         return
 
     if event_name.strip() == '':
@@ -75,18 +76,39 @@ def cmd_add(bot, update):
 def cmd_ls(bot, update):
     events = calendar.get_events()
     message = ""
-    
-    for event in events:
-        if type(event['start']) is datetime.date:
-            datetime_str = event['start'].strftime('%d.%m.%Y')
-        else:
-            datetime_str = event['start'].strftime('%d.%m.%Y %H:%M')
+    events_by_day = {}
 
-        message += "*{0}*: {1}\n\n".format(datetime_str, event['name'])
+    for event in events:
+        day = event['start'].strftime('%Y%m%d')
+        if day not in events_by_day:
+            events_by_day[day] = []
+        events_by_day[day].append(event)
+
+    output = format_ls_output(events_by_day)
 
     bot.sendMessage(update.message.chat_id, 
-            text=message, 
+            text=output, 
             parse_mode=telegram.ParseMode.MARKDOWN)
+
+
+def format_ls_output(events_by_day):
+    output = ""
+
+    for day in events_by_day:
+        day_str = events_by_day[day][0]['start'].strftime('%d.%m')
+        output += "*{0}*\n".format(day_str)
+
+        for event in events_by_day[day]:
+            has_time = type(event['start']) is datetime.datetime
+            if has_time:
+                time_str = event['start'].strftime('%H:%M')
+                output += "- _{0}_ {1}\n".format(time_str, event['name'])
+            else:
+                output += "- {0}\n".format(event['name'])
+
+        output += "\n"
+
+    return output
 
 
 def read_config(config_file):
