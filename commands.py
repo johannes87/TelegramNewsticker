@@ -19,6 +19,8 @@ def setup(updater, calendar):
 
 
 class Command:
+    allowed_chat_ids = []  # hack: will be set by bot.py upon initialization
+
     def __init__(self, calendar, names):
         self.calendar = calendar
         self.names = names
@@ -28,7 +30,19 @@ class Command:
         return text.partition(' ')[2]
 
     def handle(self, bot, update):
-        pass
+        # cheap access control
+        message = update['message']
+        chat = message['chat']
+
+        if len(Command.allowed_chat_ids) == 0:
+            return True
+
+        if chat['id'] not in Command.allowed_chat_ids:
+            print("ACCESS CONTROL: chat_id {0} not allowed. username='{1}', first_name='{2}', last_name='{3}', text='{4}'".format(
+                chat['id'], chat['username'], chat['first_name'], chat['last_name'], message['text']))
+            return False
+
+        return True
 
 
 class LsCommand(Command):
@@ -37,6 +51,9 @@ class LsCommand(Command):
 
 
     def handle(self, bot, update, **kwargs):
+        if not super().handle(bot, update):
+            return False
+
         events = self.calendar.get_events()
         message = ""
         events_by_day = {}
@@ -86,6 +103,9 @@ class AddCommand(Command):
 
 
     def handle(self, bot, update):
+        if not super().handle(bot, update):
+            return False
+
         args = Command.get_args(update.message.text)
         (event_datetime, remaining_args) = AddCommand._parse_datetime_future(args) 
     

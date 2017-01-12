@@ -5,12 +5,10 @@ import configparser
 import os
 import sys
 import logging
+import json
 
 from google_calendar import GoogleCalendar
 import commands
-
-# TODO: beschraenken auf grashuepfer news gruppe / liste von user_ids
-# idee: beschraenken auf alle nutzer in der "Grashuepfer News" Gruppe
 
 config = None
 
@@ -18,7 +16,8 @@ def read_config(config_file):
     required_keys = [
             'TelegramAccessToken',
             'CalendarClientSecretFile',
-            'CalendarID'
+            'CalendarID',
+            'AllowedChatIds'
             ]
 
     if not os.path.isfile(config_file):
@@ -26,13 +25,19 @@ def read_config(config_file):
         sys.exit(1)
     config = configparser.ConfigParser()
     config.read(config_file)
+    
+    # so that we can store non-string values
+    config_dict = {}
 
     for key in required_keys:
         if key not in config['DEFAULT']:
             print('error: key {0} does not exist in {1}'.format(key, config_file))
             sys.exit(1)
+        config_dict[key] = config['DEFAULT'][key]
 
-    return config['DEFAULT']
+    config_dict['AllowedChatIds'] = json.loads(config_dict['AllowedChatIds'])
+
+    return config_dict
 
 
 def setup_logging():
@@ -53,6 +58,8 @@ def main():
 
     global config
     config = read_config('config.ini')
+
+    commands.Command.allowed_chat_ids = config['AllowedChatIds']  # hack
     
     calendar = GoogleCalendar(config['CalendarClientSecretFile'], config['CalendarID'])
     setup_telegram(calendar)
