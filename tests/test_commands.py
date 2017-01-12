@@ -1,10 +1,11 @@
 import unittest
-import bot
 import datetime
+
+from commands import AddCommand
 
 class TestParseDatetimeFuture(unittest.TestCase):
     def assert_datetime_equals(self, args, day, month, year, hour, minute, remaining_args):
-        (dt, rem) = bot.parse_datetime_future(args)
+        (dt, rem) = AddCommand._parse_datetime_future(args)
         self.assertEqual(dt.year, year)
         self.assertEqual(dt.month, month)
         self.assertEqual(dt.day, day)
@@ -13,7 +14,7 @@ class TestParseDatetimeFuture(unittest.TestCase):
         self.assertEqual(rem, remaining_args)
 
     def assert_date_equals(self, args, day, month, year, remaining_args):
-        (dt, rem) = bot.parse_datetime_future(args)
+        (dt, rem) = AddCommand._parse_datetime_future(args)
         self.assertEqual(dt.year, year)
         self.assertEqual(dt.month, month)
         self.assertEqual(dt.day, day)
