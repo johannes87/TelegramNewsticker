@@ -56,7 +56,7 @@ class LsCommand(Command):
     def _format_output(self, events_by_day):
         output = ""
 
-        for day in events_by_day:
+        for day in sorted(events_by_day):
             first_event = events_by_day[day][0]
 
             if first_event['start'].year != datetime.datetime.now().year:
