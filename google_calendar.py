@@ -62,13 +62,31 @@ class GoogleCalendar:
                 'summary': event_name, 
                 'start': { 'date': event_date_str },
                 'end': { 'date': event_date_str }
-                }
+        }
     
         new_event = self.service.events().insert(
                 calendarId=self.calendar_id, body=event_body).execute()
     
         return new_event
+
+
+    def add_datetime_event(self, event_datetime, duration, event_name):
+        event_datetime_end = event_datetime + duration
+
+        event_datetime_start_str = event_datetime.astimezone().isoformat()
+        event_datetime_end_str = event_datetime_end.astimezone().isoformat()
+
+        event_body = {
+            'summary': event_name,
+            'start': { 'dateTime': event_datetime_start_str },
+            'end': { 'dateTime': event_datetime_end_str }
+        }
+
+        new_event = self.service.events().insert(
+                calendarId=self.calendar_id, body=event_body).execute()
     
+        return new_event
+
     
     def get_events(self):
         now = datetime.datetime.utcnow()

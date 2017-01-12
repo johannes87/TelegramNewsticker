@@ -106,11 +106,12 @@ def cmd_add(bot, update):
     if type(event_datetime) is datetime.date:
         new_event = calendar.add_date_event(event_datetime, event_name)
     else:
-        new_event = calendar.add_datetime_event(event_datetime, 1, event_name)
+        new_event = calendar.add_datetime_event(
+            event_datetime, datetime.timedelta(hours=2), event_name)
 
     bot.sendMessage(update.message.chat_id, 
             text='Event "{0}" am {1} hinzugefügt'.format(
-                new_event['summary'], new_event['start']['date']))
+                new_event['summary'], new_event['start']))
 
 
 def cmd_ls(bot, update):
