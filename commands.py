@@ -46,8 +46,6 @@ class LsCommand(Command):
                 events_by_day[day] = []
             events_by_day[day].append(event)
 
-        print("foobar")
-        print(self, type(self))
         output = self._format_output(events_by_day)
 
         bot.sendMessage(update.message.chat_id,
