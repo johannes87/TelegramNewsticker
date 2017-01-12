@@ -94,6 +94,8 @@ class LsCommand(Command):
 
             output += "\n"
 
+        output += "_Befehle_:\n`/list` oder `/ls`\n`/add 14.3. Schlonz im AKK`\n`/add 23.5. 20:00 Krümel im Z10`"
+
         return output
 
 
