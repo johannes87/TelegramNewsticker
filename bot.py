@@ -135,7 +135,13 @@ def format_ls_output(events_by_day):
     output = ""
 
     for day in events_by_day:
-        day_str = events_by_day[day][0]['start'].strftime('%d.%m')
+        first_event = events_by_day[day][0]
+
+        if first_event['start'].year != datetime.datetime.now().year:
+            day_str = first_event['start'].strftime('%d.%m.%Y')
+        else:
+            day_str = first_event['start'].strftime('%d.%m')
+
         output += "*{0}*\n".format(day_str)
 
         for event in events_by_day[day]:
