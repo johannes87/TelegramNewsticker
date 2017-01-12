@@ -73,27 +73,27 @@ class LsCommand(Command):
 
     def _format_output(self, events_by_day):
         output = ""
-    
+        
         if len(events_by_day) > 0:
             for day in sorted(events_by_day):
                 first_event = events_by_day[day][0]
-
-            if first_event['start'].year != datetime.datetime.now().year:
-                day_str = first_event['start'].strftime('%d.%m.%Y')
-            else:
-                day_str = first_event['start'].strftime('%d.%m')
-
-            output += "*{0}*\n".format(day_str)
-
-            for event in events_by_day[day]:
-                has_time = type(event['start']) is datetime.datetime
-                if has_time:
-                    time_str = event['start'].strftime('%H:%M')
-                    output += "- _{0}_ {1}\n".format(time_str, event['name'])
+    
+                if first_event['start'].year != datetime.datetime.now().year:
+                    day_str = first_event['start'].strftime('%d.%m.%Y')
                 else:
-                    output += "- {0}\n".format(event['name'])
-
-            output += "\n"
+                    day_str = first_event['start'].strftime('%d.%m')
+    
+                output += "*{0}*\n".format(day_str)
+    
+                for event in events_by_day[day]:
+                    has_time = type(event['start']) is datetime.datetime
+                    if has_time:
+                        time_str = event['start'].strftime('%H:%M')
+                        output += "- _{0}_ {1}\n".format(time_str, event['name'])
+                    else:
+                        output += "- {0}\n".format(event['name'])
+    
+                output += "\n"
         else:
             output += "Keine anstehenden Events\n\n"
 
