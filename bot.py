@@ -6,6 +6,7 @@ import configparser
 import os
 import sys
 import logging
+import re
 
 from google_calendar import GoogleCalendar
 
@@ -19,54 +20,93 @@ def get_cmd_arguments(text):
     return text.partition(' ')[2]
 
 
-def parse_date_future(date_str):
-    date_str = date_str.strip('.')
-
-
-    formats_to_try = [
-            '%d.%m.%Y',
-            '%d.%m.%y',
-            '%d.%m'
-            ]
+def parse_datetime_future(args):
+    datetime_matchers = [
+        {
+            'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+)\s+(\d+):(\d+)(.*)',
+            'formats': ['%d %m %Y %H %M', '%d %m %y %H %M'],
+            'is_datetime': True
+        },
+        {
+            'pattern': r'(\d+)\s*\.\s*(\d+)\.?\s*(\d+):(\d+)(.*)',
+            'formats': ['%d %m %H %M'],
+            'is_datetime': True
+        },
+        {
+            'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+)(.*)',
+            'formats': ['%d %m %Y', '%d %m %y'],
+            'is_datetime': False
+        },
+        {
+            'pattern': r'(\d+)\s*\.\s*(\d+)\.?(.*)',
+            'formats': ['%d %m'],
+            'is_datetime': False
+        }
+    ]
 
     dt = None
+    remaining_args = None
 
-    for fmt in formats_to_try:
-        try:
-            dt = datetime.datetime.strptime(date_str, fmt)
+    for matcher in datetime_matchers:
+        formats = matcher['formats']
+        pattern = matcher['pattern']
+        is_datetime = matcher['is_datetime']
+
+        m = re.match(pattern, args)
+        if m:
+            print("matched; args={0} pattern={1}".format(args, pattern))
+            for fmt in formats:
+                try:
+                    n_datetime_groups = len(fmt.split(' '))
+                    datetime_str = " ".join(m.groups()[0:n_datetime_groups])
+                    dt = datetime.datetime.strptime(datetime_str, fmt)
+                    if not is_datetime:
+                        dt = dt.date()
+
+                    remaining_args = m.group(n_datetime_groups + 1)
+
+                    break
+
+                except ValueError:
+                    continue 
+
             break
-        except ValueError:
-            continue
 
     if dt is None:
-        return
+        return (None, args)
 
     if dt.year == 1900:  # use current/next year when no year is given
         dt = dt.replace(year=datetime.datetime.now().year)
 
-        if dt.date() < datetime.datetime.now().date():
+        # ensure date is not in the past
+        if type(dt) is datetime.date and dt < datetime.datetime.now().date():
+            dt = datetime.date(dt.year + 1, dt.month, dt.day)
+        elif type(dt) is datetime.datetime and dt.date() < datetime.datetime.now().date():
             dt = datetime.datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-    
-    return dt.date()
+
+    return (dt, remaining_args)
 
 
 def cmd_add(bot, update):
     args = get_cmd_arguments(update.message.text)
-    date_str, sep, event_name = args.partition(' ')
-    event_date = parse_date_future(date_str)
+    (event_datetime, remaining_args) = parse_datetime_future(args) 
 
-    if event_date is None:
+    if event_datetime is None:
         bot.sendMessage(update.message.chat_id,
-                text="Ich konnte das Datum nicht verstehen. Verwende bitte keine Leerzeichen in der Datumsangabe")
-        # TODO: flexibleres datumsformat erlauben
+                text="Datum unverständlich :(")
         return
 
-    if event_name.strip() == '':
+    event_name = remaining_args.strip()
+
+    if event_name == '':
         bot.sendMessage(update.message.chat_id,
-                text='Der Name für das Event fehlt!')
+                text='Das Event braucht noch einen Namen')
         return
     
-    new_event = calendar.add_date_event(event_date, event_name)
+    if type(event_datetime) is datetime.date:
+        new_event = calendar.add_date_event(event_datetime, event_name)
+    else:
+        new_event = calendar.add_datetime_event(event_datetime, 1, event_name)
 
     bot.sendMessage(update.message.chat_id, 
             text='Event "{0}" am {1} hinzugefügt'.format(
