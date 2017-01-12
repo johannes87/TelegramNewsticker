@@ -73,9 +73,10 @@ class LsCommand(Command):
 
     def _format_output(self, events_by_day):
         output = ""
-
-        for day in sorted(events_by_day):
-            first_event = events_by_day[day][0]
+    
+        if len(events_by_day) > 0:
+            for day in sorted(events_by_day):
+                first_event = events_by_day[day][0]
 
             if first_event['start'].year != datetime.datetime.now().year:
                 day_str = first_event['start'].strftime('%d.%m.%Y')
@@ -93,6 +94,8 @@ class LsCommand(Command):
                     output += "- {0}\n".format(event['name'])
 
             output += "\n"
+        else:
+            output += "Keine anstehenden Events\n\n"
 
         output += "_Befehle_:\n`/list` oder `/ls`\n`/add 14.3. Schlonz im AKK`\n`/add 23.5. 20:00 Krümel im Z10`"
 
