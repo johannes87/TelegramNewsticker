@@ -97,7 +97,10 @@ class LsCommand(Command):
         else:
             output += "Keine anstehenden Events\n\n"
 
-        output += "_Befehle_:\n`/list` oder `/ls`\n`/add 14.3. Schlonz im AKK`\n`/add 23.5. 20:00 Krümel im Z10`"
+        output += "_Beispiele für Befehle_:\n" \
+                "`/list` oder `/ls`\n" \
+                "`/add 14.3. Schlonz im AKK`\n" \
+                "`/add 23.5. 20:00 Krümel im Z10`"
 
         return output
 
