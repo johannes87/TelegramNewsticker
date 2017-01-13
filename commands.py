@@ -151,22 +151,22 @@ class AddCommand(Command):
     def _parse_datetime_future(args):
         datetime_matchers = [
             {
-                'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+)\s+(\d+):(\d+)(.*)',
+                'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+)\s+(\d+):(\d+) (.*)',
                 'formats': ['%d %m %Y %H %M', '%d %m %y %H %M'],
                 'is_datetime': True
             },
             {
-                'pattern': r'(\d+)\s*\.\s*(\d+)\.?\s*(\d+):(\d+)(.*)',
+                'pattern': r'(\d+)\s*\.\s*(\d+)\.?\s*(\d+):(\d+) (.*)',
                 'formats': ['%d %m %H %M'],
                 'is_datetime': True
             },
             {
-                'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+)(.*)',
+                'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+) (.*)',
                 'formats': ['%d %m %Y', '%d %m %y'],
                 'is_datetime': False
             },
             {
-                'pattern': r'(\d+)\s*\.\s*(\d+)\.?(.*)',
+                'pattern': r'(\d+)\s*\.\s*(\d+)\.? (.*)',
                 'formats': ['%d %m'],
                 'is_datetime': False
             }
