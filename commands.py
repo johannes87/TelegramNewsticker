@@ -26,8 +26,8 @@ class Command:
         self.names = names
     
     @staticmethod
-    def get_args(text):
-        return text.partition(' ')[2]
+    def get_args(update):
+        return update.message.text.partition(' ')[2]
 
     def handle(self, bot, update):
         # cheap access control
@@ -111,7 +111,7 @@ class AddCommand(Command):
         if not super().handle(bot, update):
             return False
 
-        args = Command.get_args(update.message.text)
+        args = Command.get_args(update)
         (event_datetime, remaining_args) = AddCommand._parse_datetime_future(args) 
     
         if event_datetime is None:
