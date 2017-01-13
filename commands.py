@@ -89,9 +89,9 @@ class LsCommand(Command):
                     has_time = type(event['start']) is datetime.datetime
                     if has_time:
                         time_str = event['start'].strftime('%H:%M')
-                        output += "- _{0}_ {1}\n".format(time_str, event['name'])
+                        output += "◦ {0} → {1}\n".format(time_str, event['name'])
                     else:
-                        output += "- {0}\n".format(event['name'])
+                        output += "◦ {0}\n".format(event['name'])
     
                 output += "\n"
         else:
