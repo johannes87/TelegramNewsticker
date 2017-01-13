@@ -50,7 +50,7 @@ class LsCommand(Command):
         super().__init__(calendar, names)
 
 
-    def handle(self, bot, update, **kwargs):
+    def handle(self, bot, update):
         if not super().handle(bot, update):
             return False
 
