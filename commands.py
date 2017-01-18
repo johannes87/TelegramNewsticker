@@ -134,17 +134,10 @@ class AddCommand(Command):
         else:
             new_event = self.calendar.add_datetime_event(
                 event_datetime, datetime.timedelta(hours=2), event_name)
-
-        if 'dateTime' in new_event['start']:
-            new_event_datetime = dateutil.parser.parse(new_event['start']['dateTime'])
-            new_event_start_str = new_event_datetime.strftime('%d.%m.%Y um %H:%M')
-        else:
-            new_event_datetime = dateutil.parser.parse(new_event['start']['date'])
-            new_event_start_str = new_event_datetime.strftime('%d.%m.%Y')
     
         bot.sendMessage(update.message.chat_id, 
                 text='Event "{0}" am {1} hinzugefügt'.format(
-                    new_event['summary'], new_event_start_str))
+                    new_event['summary'], new_event['start']['human_readable']))
 
 
     @staticmethod

@@ -7,6 +7,7 @@ from oauth2client import client
 from oauth2client import tools
 import dateutil.parser
 import httplib2
+from dateutil.parser import parse as dt_parse
 
 
 class GoogleCalendar:
@@ -66,6 +67,10 @@ class GoogleCalendar:
     
         new_event = self.service.events().insert(
                 calendarId=self.calendar_id, body=event_body).execute()
+        
+
+        new_event['start']['human_readable'] = dt_parse(new_event['start']['date']).\
+                strftime('%d.%m.%Y')
     
         return new_event
 
@@ -84,6 +89,9 @@ class GoogleCalendar:
 
         new_event = self.service.events().insert(
                 calendarId=self.calendar_id, body=event_body).execute()
+
+        new_event['start']['human_readable'] = dt_parse(new_event['start']['dateTime']).\
+                strftime('%d.%m.%Y um %H:%M')
     
         return new_event
 
