@@ -1,7 +1,7 @@
 import unittest
 import datetime
 
-from commands import AddCommand
+from commands import AddCommand, Command
 
 class TestParseDatetimeFuture(unittest.TestCase):
     def assert_datetime_equals(self, args, day, month, year, hour, minute, remaining_args):
@@ -29,7 +29,7 @@ class TestParseDatetimeFuture(unittest.TestCase):
     def test_date_with_year(self):
         self.assert_date_equals("15. 3. 2014", 15, 3, 2014, "")
         self.assert_date_equals("15. 3. 14", 15, 3, 2014, "")
-        self.assert_date_equals("15. 3. 14   ", 15, 3, 2014, "   ")
+        self.assert_date_equals("15. 3. 14  ", 15, 3, 2014, "  ")
 
     def test_no_year_given(self):
         now = datetime.datetime.now()
@@ -37,15 +37,14 @@ class TestParseDatetimeFuture(unittest.TestCase):
         tomorrow = now + datetime.timedelta(days=1)
 
         yesterday_day_month_str = yesterday.strftime('%d. %m')
-        now_day_month_str = now.strftime('%d. %m.')
-        tomorrow_day_month_str = tomorrow.strftime('%d. %m. ')
-
         self.assert_date_equals(yesterday_day_month_str,
                 yesterday.day, yesterday.month, now.year + 1, '')
-
+        
+        now_day_month_str = now.strftime('%d. %m.')
         self.assert_date_equals(now_day_month_str,
                 now.day, now.month, now.year, '')
 
+        tomorrow_day_month_str = tomorrow.strftime('%d. %m. ')
         self.assert_date_equals(tomorrow_day_month_str,
                 tomorrow.day, tomorrow.month, tomorrow.year, ' ')
 

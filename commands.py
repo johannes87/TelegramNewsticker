@@ -29,6 +29,66 @@ class Command:
     def get_args(update):
         return update.message.text.partition(' ')[2]
 
+    @staticmethod
+    def parse_datetime_str(dt_str):
+        datetime_matchers = [
+            {
+                'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+)\s+(\d+):(\d+)(.*)',
+                'formats': ['%d %m %Y %H %M', '%d %m %y %H %M'],
+                'is_datetime': True
+            },
+            {
+                'pattern': r'(\d+)\s*\.\s*(\d+)\.?\s*(\d+):(\d+)(.*)',
+                'formats': ['%d %m %H %M'],
+                'is_datetime': True
+            },
+            {
+                'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+)(.*)',
+                'formats': ['%d %m %Y', '%d %m %y'],
+                'is_datetime': False
+            },
+            {
+                'pattern': r'(\d+)\s*\.\s*(\d+)\.?(.*)',
+                'formats': ['%d %m'],
+                'is_datetime': False
+            }
+        ]
+    
+        dt = None
+        remaining_dt_str = None
+    
+        for matcher in datetime_matchers:
+            formats = matcher['formats']
+            pattern = matcher['pattern']
+            is_datetime = matcher['is_datetime']
+    
+            m = re.match(pattern, dt_str)
+            # print("str={0}, trying {1}".format(dt_str, pattern))
+            if m:
+                # print("matched, str={0}, fmt={1}, pttrn={2}".format(dt_str, formats, pattern))
+                for fmt in formats:
+                    try:
+                        n_datetime_groups = len(fmt.split(' '))
+                        datetime_str = " ".join(m.groups()[0:n_datetime_groups])
+                        dt = datetime.datetime.strptime(datetime_str, fmt)
+                        if not is_datetime:
+                            dt = dt.date()
+    
+                        remaining_dt_str = m.group(n_datetime_groups + 1)
+    
+                        break
+    
+                    except ValueError:
+                        continue 
+    
+                break
+
+        if dt is None:
+            return (None, dt_str)
+        else:
+            return (dt, remaining_dt_str)
+
+
     def handle(self, bot, update):
         # cheap access control
         message = update['message']
@@ -142,59 +202,11 @@ class AddCommand(Command):
 
     @staticmethod
     def _parse_datetime_future(args):
-        datetime_matchers = [
-            {
-                'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+)\s+(\d+):(\d+) (.*)',
-                'formats': ['%d %m %Y %H %M', '%d %m %y %H %M'],
-                'is_datetime': True
-            },
-            {
-                'pattern': r'(\d+)\s*\.\s*(\d+)\.?\s*(\d+):(\d+) (.*)',
-                'formats': ['%d %m %H %M'],
-                'is_datetime': True
-            },
-            {
-                'pattern': r'(\d+)\s*\.\s*(\d+)\s*\.\s*(\d+) (.*)',
-                'formats': ['%d %m %Y', '%d %m %y'],
-                'is_datetime': False
-            },
-            {
-                'pattern': r'(\d+)\s*\.\s*(\d+)\.? (.*)',
-                'formats': ['%d %m'],
-                'is_datetime': False
-            }
-        ]
-    
-        dt = None
-        remaining_args = None
-    
-        for matcher in datetime_matchers:
-            formats = matcher['formats']
-            pattern = matcher['pattern']
-            is_datetime = matcher['is_datetime']
-    
-            m = re.match(pattern, args)
-            if m:
-                for fmt in formats:
-                    try:
-                        n_datetime_groups = len(fmt.split(' '))
-                        datetime_str = " ".join(m.groups()[0:n_datetime_groups])
-                        dt = datetime.datetime.strptime(datetime_str, fmt)
-                        if not is_datetime:
-                            dt = dt.date()
-    
-                        remaining_args = m.group(n_datetime_groups + 1)
-    
-                        break
-    
-                    except ValueError:
-                        continue 
-    
-                break
-    
+        (dt, remaining_args) = Command.parse_datetime_str(args) 
+        
         if dt is None:
-            return (None, args)
-    
+            return (None, remaining_args)
+
         if dt.year == 1900:  # use current/next year when no year is given
             dt = dt.replace(year=datetime.datetime.now().year)
     
@@ -205,6 +217,3 @@ class AddCommand(Command):
                 dt = datetime.datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     
         return (dt, remaining_args)
-
-
-
