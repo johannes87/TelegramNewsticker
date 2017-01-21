@@ -48,7 +48,7 @@ def setup_logging():
 
 def setup_telegram(calendar):
     updater = telegram.ext.Updater(config['TelegramAccessToken'])
-    commands.setup(updater, calendar)
+    commands.setup(updater, calendar, config['AllowedChatIds'])
     updater.start_polling()
     updater.idle()
 
@@ -58,8 +58,6 @@ def main():
 
     global config
     config = read_config('config.ini')
-
-    commands.Command.allowed_chat_ids = config['AllowedChatIds']  # hack
     
     calendar = GoogleCalendar(config['CalendarClientSecretFile'], config['CalendarID'])
     setup_telegram(calendar)

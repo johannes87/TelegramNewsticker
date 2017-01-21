@@ -7,10 +7,10 @@ import dateutil.parser
 from google_calendar import GoogleCalendar
 
 
-def setup(updater, calendar):
+def setup(updater, calendar, allowed_chat_ids):
     commands = [
-            LsCommand(calendar, ['ls', 'list']),
-            AddCommand(calendar, ['add'])
+            LsCommand(calendar, ['ls', 'list'], allowed_chat_ids),
+            AddCommand(calendar, ['add'], allowed_chat_ids)
             ]
 
     for cmd in commands:
@@ -19,15 +19,10 @@ def setup(updater, calendar):
 
 
 class Command:
-    allowed_chat_ids = []  # hack: will be set by bot.py upon initialization
-
-    def __init__(self, calendar, names):
-        self.calendar = calendar
-        self.names = names
-    
     @staticmethod
     def get_args(update):
         return update.message.text.partition(' ')[2]
+
 
     @staticmethod
     def parse_datetime_str(dt_str):
@@ -83,39 +78,12 @@ class Command:
     
                 break
 
-        if dt is None:
-            return (None, dt_str)
-        else:
-            return (dt, remaining_dt_str)
+        return (dt, remaining_dt_str)
 
+    @staticmethod
+    def format_events_listing(events):
+        output = ""
 
-    def handle(self, bot, update):
-        # cheap access control
-        message = update['message']
-        chat = message['chat']
-
-        if len(Command.allowed_chat_ids) == 0:
-            return True
-
-        if chat['id'] not in Command.allowed_chat_ids:
-            print("ACCESS CONTROL: chat_id {0} not allowed. username='{1}', first_name='{2}', last_name='{3}', text='{4}'".format(
-                chat['id'], chat['username'], chat['first_name'], chat['last_name'], message['text']))
-            return False
-
-        return True
-
-
-class LsCommand(Command):
-    def __init__(self, calendar, names):
-        super().__init__(calendar, names)
-
-
-    def handle(self, bot, update):
-        if not super().handle(bot, update):
-            return False
-
-        events = self.calendar.get_events()
-        message = ""
         events_by_day = {}
 
         for event in events:
@@ -124,27 +92,18 @@ class LsCommand(Command):
                 events_by_day[day] = []
             events_by_day[day].append(event)
 
-        output = self._format_output(events_by_day)
-
-        bot.sendMessage(update.message.chat_id,
-                text=output,
-                parse_mode=telegram.ParseMode.MARKDOWN)
-
-
-    def _format_output(self, events_by_day):
-        output = ""
         
         if len(events_by_day) > 0:
             for day in sorted(events_by_day):
                 first_event = events_by_day[day][0]
-    
+
                 if first_event['start'].year != datetime.datetime.now().year:
                     day_str = first_event['start'].strftime('%d.%m.%Y')
                 else:
                     day_str = first_event['start'].strftime('%d.%m')
-    
+
                 output += "*{0}*\n".format(day_str)
-    
+
                 for event in events_by_day[day]:
                     has_time = type(event['start']) is datetime.datetime
                     if has_time:
@@ -152,22 +111,84 @@ class LsCommand(Command):
                         output += "◦ {0} → {1}\n".format(time_str, event['name'])
                     else:
                         output += "◦ {0}\n".format(event['name'])
-    
+
                 output += "\n"
         else:
             output += "Keine anstehenden Events\n\n"
 
         output += "_Befehle_:\n" \
                 "`/list` oder `/ls`\n" \
-                "`/add 14.3. Schlonz im AKK`\n" \
+                "`/add 14.3.2042 Schlonz im AKK`\n" \
                 "`/add 23.5. 20:00 Krümel im Z10`"
 
         return output
 
 
+    def __init__(self, calendar, names, allowed_chat_ids):
+        self.calendar = calendar
+        self.names = names
+        self.allowed_chat_ids = allowed_chat_ids
+    
+
+    def handle(self, bot, update):
+        return self.access_allowed(update)
+
+
+    def access_allowed(self, update):
+        message = update.message
+        chat = message.chat
+
+        if len(self.allowed_chat_ids) == 0:
+            return True
+        
+        if chat.id not in self.allowed_chat_ids:
+            print("ACCESS CONTROL: chat_id {0} not allowed. username='{1}', first_name='{2}', last_name='{3}', text='{4}'".format(
+                chat.id, chat.username, chat.first_name, chat.last_name, update.message.text))
+            return False
+
+        return True
+
+
+class LsCommand(Command):
+    def __init__(self, calendar, names, allowed_chat_ids):
+        super().__init__(calendar, names, allowed_chat_ids)
+
+
+    def handle(self, bot, update):
+        if not super().handle(bot, update):
+            return False
+
+        events = self.calendar.get_events()
+        output = Command.format_events_listing(events)
+
+        bot.sendMessage(update.message.chat.id,
+                text=output,
+                parse_mode=telegram.ParseMode.MARKDOWN)
+        
+        return True
+
 class AddCommand(Command):
-    def __init__(self, calendar, names):
-        super().__init__(calendar, names)
+    @staticmethod
+    def _parse_datetime_future(args):
+        (dt, remaining_args) = Command.parse_datetime_str(args) 
+        
+        if dt is None:
+            return (None, remaining_args)
+
+        if dt.year == 1900:  # use current/next year when no year is given
+            dt = dt.replace(year=datetime.datetime.now().year)
+    
+            # ensure date is not in the past
+            if type(dt) is datetime.date and dt < datetime.datetime.now().date():
+                dt = datetime.date(dt.year + 1, dt.month, dt.day)
+            elif type(dt) is datetime.datetime and dt.date() < datetime.datetime.now().date():
+                dt = datetime.datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+    
+        return (dt, remaining_args)
+
+
+    def __init__(self, calendar, names, allowed_chat_ids):
+        super().__init__(calendar, names, allowed_chat_ids)
 
 
     def handle(self, bot, update):
@@ -199,21 +220,4 @@ class AddCommand(Command):
                 text='Event "{0}" am {1} hinzugefügt'.format(
                     new_event['summary'], new_event['start']['human_readable']))
 
-
-    @staticmethod
-    def _parse_datetime_future(args):
-        (dt, remaining_args) = Command.parse_datetime_str(args) 
-        
-        if dt is None:
-            return (None, remaining_args)
-
-        if dt.year == 1900:  # use current/next year when no year is given
-            dt = dt.replace(year=datetime.datetime.now().year)
-    
-            # ensure date is not in the past
-            if type(dt) is datetime.date and dt < datetime.datetime.now().date():
-                dt = datetime.date(dt.year + 1, dt.month, dt.day)
-            elif type(dt) is datetime.datetime and dt.date() < datetime.datetime.now().date():
-                dt = datetime.datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-    
-        return (dt, remaining_args)
+        return True

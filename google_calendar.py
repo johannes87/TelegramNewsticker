@@ -67,7 +67,6 @@ class GoogleCalendar:
     
         new_event = self.service.events().insert(
                 calendarId=self.calendar_id, body=event_body).execute()
-        
 
         new_event['start']['human_readable'] = dt_parse(new_event['start']['date']).\
                 strftime('%d.%m.%Y')

@@ -1,7 +1,39 @@
 import unittest
 import datetime
+from unittest.mock import create_autospec, MagicMock
 
-from commands import AddCommand, Command
+import google_calendar
+from commands import AddCommand, LsCommand
+
+
+class TestAccessControl(unittest.TestCase):
+    def test_access_control(self):
+        calendar = create_autospec(google_calendar.GoogleCalendar)
+        allowed_id = 1234;
+
+        ls_command = LsCommand(calendar, ['ls'], [allowed_id])
+        update = MagicMock()
+        update.message.chat.id = 31337
+        bot = MagicMock()
+        ret = ls_command.handle(bot, update)
+        self.assertFalse(ret)
+        bot.sendMessage.assert_not_called()
+
+        update = MagicMock()
+        update.message.chat.id = allowed_id
+        bot = MagicMock()
+        ret = ls_command.handle(bot, update)
+        self.assertTrue(ret)
+        bot.sendMessage.assert_called()
+
+        ls_command_any_allowed = LsCommand(calendar, ['ls'], [])
+        update = MagicMock()
+        update.message.chat.id = 912389781
+        bot = MagicMock()
+        ret = ls_command_any_allowed.handle(bot, update)
+        self.assertTrue(ret)
+        bot.sendMessage.assert_called()
+        
 
 class TestParseDatetimeFuture(unittest.TestCase):
     def assert_datetime_equals(self, args, day, month, year, hour, minute, remaining_args):
