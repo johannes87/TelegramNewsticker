@@ -81,7 +81,7 @@ class Command:
         return (dt, remaining_dt_str)
 
     @staticmethod
-    def format_events_listing(events):
+    def format_events_listing(events, highlight_event=None):
         output = ""
 
         events_by_day = {}
@@ -107,11 +107,31 @@ class Command:
 
                 for event in events_by_day[day]:
                     has_time = type(event['start']) is datetime.datetime
+                    highlight_this_event = False
+
+                    if highlight_event:
+                        same_datetime = event['start'] == highlight_event['start']
+                        same_summary = event['summary'] == highlight_event['summary']
+                        # print('e', event['start'], 'h', highlight_event['start'], same_datetime, same_summary)
+
+                        if same_datetime and same_summary:
+                            highlight_this_event = True
+
+                    highlight_prepend = ""
+                    highlight_postpend = ""
+
+                    if highlight_this_event:
+                        highlight_prepend = "*"
+                        highlight_postpend = "*"
+
                     if has_time:
                         time_str = event['start'].strftime('%H:%M')
-                        output += "◦ {0} → {1}\n".format(time_str, event['summary'])
+                        output += highlight_prepend + "◦ {0} → {1}\n".format(time_str, event['summary']) + \
+                                highlight_postpend
                     else:
-                        output += "◦ {0}\n".format(event['summary'])
+                        output += highlight_prepend + "◦ {0}\n".format(event['summary']) + \
+                                highlight_postpend
+                    
 
                 output += "\n"
         else:
@@ -168,6 +188,7 @@ class LsCommand(Command):
         
         return True
 
+
 class AddCommand(Command):
     @staticmethod
     def _parse_datetime_future(args):
@@ -216,9 +237,13 @@ class AddCommand(Command):
         else:
             new_event = self.calendar.add_datetime_event(
                 event_datetime, datetime.timedelta(hours=2), event_name)
-    
-        bot.sendMessage(update.message.chat_id, 
-                text='Event "{0}" am {1} hinzugefügt'.format(
-                    new_event['summary'], new_event['start']['human_readable']))
 
+        
+        events = self.calendar.get_events()
+        new_event['start'] = GoogleCalendar.event_time_to_datetime(new_event['start'])
+
+        bot.sendMessage(update.message.chat.id,
+                text=Command.format_events_listing(events, new_event),
+                parse_mode=telegram.ParseMode.MARKDOWN)
+    
         return True
