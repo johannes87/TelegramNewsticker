@@ -108,9 +108,9 @@ class Command:
                     has_time = type(event['start']) is datetime.datetime
                     if has_time:
                         time_str = event['start'].strftime('%H:%M')
-                        output += "◦ {0} → {1}\n".format(time_str, event['name'])
+                        output += "◦ {0} → {1}\n".format(time_str, event['summary'])
                     else:
-                        output += "◦ {0}\n".format(event['name'])
+                        output += "◦ {0}\n".format(event['summary'])
 
                 output += "\n"
         else:

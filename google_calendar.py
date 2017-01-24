@@ -119,6 +119,7 @@ class GoogleCalendar:
                 event_start = dateutil.parser.parse(event['start']['date']).date()
     
             ret_events.append({'start': event_start, 'name': event_summary})
+            ret_events.append({'start': event_start, 'summary': event_summary})
         
         return ret_events 
 
