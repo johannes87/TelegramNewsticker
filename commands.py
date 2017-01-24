@@ -97,7 +97,8 @@ class Command:
             for day in sorted(events_by_day):
                 first_event = events_by_day[day][0]
 
-                if first_event['start'].year != datetime.datetime.now().year:
+                need_year = first_event['start'].year != datetime.datetime.now().year
+                if need_year:
                     day_str = first_event['start'].strftime('%d.%m.%Y')
                 else:
                     day_str = first_event['start'].strftime('%d.%m')
