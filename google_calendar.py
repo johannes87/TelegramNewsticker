@@ -11,6 +11,15 @@ from dateutil.parser import parse as dt_parse
 
 
 class GoogleCalendar:
+    @staticmethod
+    def event_time_to_datetime(event_time):
+        if 'dateTime' in event_time:
+            event_datetime = dateutil.parser.parse(event_time['dateTime'])
+        else:
+            event_datetime = dateutil.parser.parse(event_time['date']).date()
+        return event_datetime
+
+
     def __get_calendar_service(client_secret_file):
         def get_credentials():
             """Gets valid user credentials from storage.
@@ -112,13 +121,7 @@ class GoogleCalendar:
     
         for event in events:
             event_summary = event['summary']
-    
-            if 'dateTime' in event['start']:
-                event_start = dateutil.parser.parse(event['start']['dateTime'])
-            else:
-                event_start = dateutil.parser.parse(event['start']['date']).date()
-    
-            ret_events.append({'start': event_start, 'name': event_summary})
+            event_start = GoogleCalendar.event_time_to_datetime(event['start'])
             ret_events.append({'start': event_start, 'summary': event_summary})
         
         return ret_events 
