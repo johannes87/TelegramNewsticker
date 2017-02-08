@@ -8,6 +8,7 @@ from oauth2client import tools
 import dateutil.parser
 import httplib2
 from dateutil.parser import parse as dt_parse
+import tzlocal
 
 
 class GoogleCalendar:
@@ -85,9 +86,10 @@ class GoogleCalendar:
 
     def add_datetime_event(self, event_datetime, duration, event_name):
         event_datetime_end = event_datetime + duration
+        local_tz = tzlocal.get_localzone()
 
-        event_datetime_start_str = event_datetime.astimezone().isoformat()
-        event_datetime_end_str = event_datetime_end.astimezone().isoformat()
+        event_datetime_start_str = local_tz.localize(event_datetime).isoformat()
+        event_datetime_end_str = local_tz.localize(event_datetime_end).isoformat()
 
         event_body = {
             'summary': event_name,

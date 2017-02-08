@@ -2,3 +2,4 @@ python-dateutil
 python-telegram-bot
 google-api-python-client
 httplib2
+tzlocal
