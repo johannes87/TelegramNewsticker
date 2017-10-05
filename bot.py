@@ -50,6 +50,7 @@ def setup_telegram(calendar):
     updater = telegram.ext.Updater(config['TelegramAccessToken'])
     commands.setup(updater, calendar, config['AllowedChatIds'])
     updater.start_polling()
+    print("TelegramNewsticker ready")
     updater.idle()
 
 
