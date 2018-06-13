@@ -1,6 +1,10 @@
 # TelegramNewsticker
 A Telegram bot impementing a newsticker based on Google Calendar events.
 
+# Exemplary interaction with the bot
+
+![Screenshot of adding an event with the bot](/img/user_interface_screenshot.png)
+
 # Usage
 
 1. Copy `example_config.ini` to `config.ini`
