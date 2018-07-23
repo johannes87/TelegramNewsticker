@@ -1,16 +1,14 @@
-import functools
 import telegram
 import datetime
 import re
-import dateutil.parser
 
 from google_calendar import GoogleCalendar
 
 
-def setup(updater, calendar, allowed_chat_ids):
+def add_commands(updater, calendar, allowed_chat_ids):
     commands = [
-            LsCommand(calendar, ['ls', 'list'], allowed_chat_ids),
-            AddCommand(calendar, ['add'], allowed_chat_ids)
+            Ls(calendar, ['ls', 'list'], allowed_chat_ids),
+            Add(calendar, ['add'], allowed_chat_ids)
             ]
 
     for cmd in commands:
@@ -19,10 +17,14 @@ def setup(updater, calendar, allowed_chat_ids):
 
 
 class Command:
+    def __init__(self, calendar, names, allowed_chat_ids):
+        self.calendar = calendar
+        self.names = names
+        self.allowed_chat_ids = allowed_chat_ids
+
     @staticmethod
     def get_args(update):
         return update.message.text.partition(' ')[2]
-
 
     @staticmethod
     def parse_datetime_str(dt_str):
@@ -92,7 +94,6 @@ class Command:
                 events_by_day[day] = []
             events_by_day[day].append(event)
 
-        
         if len(events_by_day) > 0:
             for day in sorted(events_by_day):
                 first_event = events_by_day[day][0]
@@ -131,7 +132,6 @@ class Command:
                     else:
                         output += highlight_prepend + "◦ {0}\n".format(event['summary']) + \
                                 highlight_postpend
-                    
 
                 output += "\n"
         else:
@@ -144,16 +144,8 @@ class Command:
 
         return output
 
-
-    def __init__(self, calendar, names, allowed_chat_ids):
-        self.calendar = calendar
-        self.names = names
-        self.allowed_chat_ids = allowed_chat_ids
-    
-
     def handle(self, bot, update):
         return self.access_allowed(update)
-
 
     def access_allowed(self, update):
         message = update.message
@@ -163,39 +155,50 @@ class Command:
             return True
         
         if chat.id not in self.allowed_chat_ids:
-            print("ACCESS CONTROL: chat_id {0} not allowed. username='{1}', first_name='{2}', last_name='{3}', text='{4}'".format(
-                chat.id, chat.username, chat.first_name, chat.last_name, update.message.text))
+            print(("ACCESS CONTROL: chat_id {0} not allowed. "
+                   "username='{1}', "
+                   "first_name='{2}', "
+                   "last_name='{3}', "
+                   "text='{4}'".format(
+                    chat.id,
+                    chat.username,
+                    chat.first_name,
+                    chat.last_name,
+                    message.text
+            )))
             return False
 
         return True
 
 
-class LsCommand(Command):
+class Ls(Command):
     def __init__(self, calendar, names, allowed_chat_ids):
         super().__init__(calendar, names, allowed_chat_ids)
-
 
     def handle(self, bot, update):
         if not super().handle(bot, update):
             return False
 
         events = self.calendar.get_events()
-        output = Command.format_events_listing(events)
+        output = self.format_events_listing(events)
 
         bot.sendMessage(update.message.chat.id,
-                text=output,
-                parse_mode=telegram.ParseMode.MARKDOWN)
+                        text=output,
+                        parse_mode=telegram.ParseMode.MARKDOWN)
         
         return True
 
 
-class AddCommand(Command):
+class Add(Command):
+    def __init__(self, calendar, names, allowed_chat_ids):
+        super().__init__(calendar, names, allowed_chat_ids)
+
     @staticmethod
     def _parse_datetime_future(args):
-        (dt, remaining_args) = Command.parse_datetime_str(args) 
+        (dt, remaining_args) = Command.parse_datetime_str(args)
         
         if dt is None:
-            return (None, remaining_args)
+            return None, remaining_args
 
         if dt.year == 1900:  # use current/next year when no year is given
             dt = dt.replace(year=datetime.datetime.now().year)
@@ -206,30 +209,25 @@ class AddCommand(Command):
             elif type(dt) is datetime.datetime and dt.date() < datetime.datetime.now().date():
                 dt = datetime.datetime(dt.year + 1, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     
-        return (dt, remaining_args)
-
-
-    def __init__(self, calendar, names, allowed_chat_ids):
-        super().__init__(calendar, names, allowed_chat_ids)
-
+        return dt, remaining_args
 
     def handle(self, bot, update):
         if not super().handle(bot, update):
             return False
 
-        args = Command.get_args(update)
-        (event_datetime, remaining_args) = AddCommand._parse_datetime_future(args) 
+        args = self.get_args(update)
+        (event_datetime, remaining_args) = self._parse_datetime_future(args)
     
         if event_datetime is None:
             bot.sendMessage(update.message.chat_id,
-                    text="Datum unverständlich :(")
+                            text="Datum unverständlich :(")
             return
     
         event_name = remaining_args.strip()
     
         if event_name == '':
             bot.sendMessage(update.message.chat_id,
-                    text='Das Event braucht noch einen Namen')
+                            text='Das Event braucht noch einen Namen')
             return
         
         if type(event_datetime) is datetime.date:
@@ -238,12 +236,11 @@ class AddCommand(Command):
             new_event = self.calendar.add_datetime_event(
                 event_datetime, datetime.timedelta(hours=2), event_name)
 
-        
         events = self.calendar.get_events()
         new_event['start'] = GoogleCalendar.event_time_to_datetime(new_event['start'])
 
         bot.sendMessage(update.message.chat.id,
-                text=Command.format_events_listing(events, new_event),
-                parse_mode=telegram.ParseMode.MARKDOWN)
+                        text=self.format_events_listing(events, new_event),
+                        parse_mode=telegram.ParseMode.MARKDOWN)
     
         return True

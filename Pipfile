@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+python-dateutil = "*"
+python-telegram-bot = "*"
+google-api-python-client = "*"
+"httplib2" = "*"
+tzlocal = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.7"

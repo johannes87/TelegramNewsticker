@@ -3,7 +3,7 @@ import datetime
 from unittest.mock import create_autospec, MagicMock
 
 import google_calendar
-from commands import AddCommand, LsCommand
+from commands import Add, Ls
 
 
 class TestAccessControl(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestAccessControl(unittest.TestCase):
         calendar = create_autospec(google_calendar.GoogleCalendar)
         allowed_id = 1234;
 
-        ls_command = LsCommand(calendar, ['ls'], [allowed_id])
+        ls_command = Ls(calendar, ['ls'], [allowed_id])
         update = MagicMock()
         update.message.chat.id = 31337
         bot = MagicMock()
@@ -26,7 +26,7 @@ class TestAccessControl(unittest.TestCase):
         self.assertTrue(ret)
         bot.sendMessage.assert_called()
 
-        ls_command_any_allowed = LsCommand(calendar, ['ls'], [])
+        ls_command_any_allowed = Ls(calendar, ['ls'], [])
         update = MagicMock()
         update.message.chat.id = 912389781
         bot = MagicMock()
@@ -37,7 +37,7 @@ class TestAccessControl(unittest.TestCase):
 
 class TestParseDatetimeFuture(unittest.TestCase):
     def assert_datetime_equals(self, args, day, month, year, hour, minute, remaining_args):
-        (dt, rem) = AddCommand._parse_datetime_future(args)
+        (dt, rem) = Add._parse_datetime_future(args)
         self.assertEqual(dt.year, year)
         self.assertEqual(dt.month, month)
         self.assertEqual(dt.day, day)
@@ -46,7 +46,7 @@ class TestParseDatetimeFuture(unittest.TestCase):
         self.assertEqual(rem, remaining_args)
 
     def assert_date_equals(self, args, day, month, year, remaining_args):
-        (dt, rem) = AddCommand._parse_datetime_future(args)
+        (dt, rem) = Add._parse_datetime_future(args)
         self.assertEqual(dt.year, year)
         self.assertEqual(dt.month, month)
         self.assertEqual(dt.day, day)

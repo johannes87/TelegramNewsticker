@@ -12,6 +12,10 @@ import tzlocal
 
 
 class GoogleCalendar:
+    def __init__(self, client_secret_file, calendar_id):
+        self.calendar_id = calendar_id
+        self.calendar_service = self._get_calendar_service(client_secret_file)
+
     @staticmethod
     def event_time_to_datetime(event_time):
         if 'dateTime' in event_time:
@@ -20,8 +24,8 @@ class GoogleCalendar:
             event_datetime = dateutil.parser.parse(event_time['date']).date()
         return event_datetime
 
-
-    def __get_calendar_service(client_secret_file):
+    @staticmethod
+    def _get_calendar_service(client_secret_file):
         def get_credentials():
             """Gets valid user credentials from storage.
         
@@ -32,8 +36,8 @@ class GoogleCalendar:
                 Credentials, the obtained credential.
             """
             
-            SCOPES = "https://www.googleapis.com/auth/calendar"
-            APPLICATION_NAME = "Google-Calendar-API Client"
+            scopes = "https://www.googleapis.com/auth/calendar"
+            application_name = "Google-Calendar-API Client"
     
             home_dir = os.path.expanduser('~')
             credential_dir = os.path.join(home_dir, '.credentials')
@@ -51,8 +55,8 @@ class GoogleCalendar:
             store = oauth2client.file.Storage(credential_path)
             credentials = store.get()
             if not credentials or credentials.invalid:
-                flow = client.flow_from_clientsecrets(client_secret_file, SCOPES)
-                flow.user_agent = APPLICATION_NAME
+                flow = client.flow_from_clientsecrets(client_secret_file, scopes)
+                flow.user_agent = application_name
                 if flags:
                     credentials = tools.run_flow(flow, store, flags)
                 else: # Needed only for compatibility with Python 2.6
@@ -65,7 +69,6 @@ class GoogleCalendar:
         service = discovery.build('calendar', 'v3', http=http)
         return service
 
-
     def add_date_event(self, event_date, event_name):
         event_date_str = event_date.strftime('%Y-%m-%d')
     
@@ -75,14 +78,13 @@ class GoogleCalendar:
                 'end': { 'date': event_date_str }
         }
     
-        new_event = self.service.events().insert(
+        new_event = self.calendar_service.events().insert(
                 calendarId=self.calendar_id, body=event_body).execute()
 
         new_event['start']['human_readable'] = dt_parse(new_event['start']['date']).\
                 strftime('%d.%m.%Y')
     
         return new_event
-
 
     def add_datetime_event(self, event_datetime, duration, event_name):
         event_datetime_end = event_datetime + duration
@@ -97,7 +99,7 @@ class GoogleCalendar:
             'end': { 'dateTime': event_datetime_end_str }
         }
 
-        new_event = self.service.events().insert(
+        new_event = self.calendar_service.events().insert(
                 calendarId=self.calendar_id, body=event_body).execute()
 
         new_event['start']['human_readable'] = dt_parse(new_event['start']['dateTime']).\
@@ -105,30 +107,24 @@ class GoogleCalendar:
     
         return new_event
 
-    
     def get_events(self):
         now = datetime.datetime.utcnow()
         now -= datetime.timedelta(days=1) # ensure same-day events are shown
         now = now.isoformat() + 'Z' # 'Z' indicates UTC time
     
-        eventsResult = self.service.events().list(
+        events_result = self.calendar_service.events().list(
             calendarId=self.calendar_id, 
             timeMin=now,
             orderBy='startTime',
             singleEvents=True,
             ).execute()
-        events = eventsResult.get('items', [])
+        events = events_result.get('items', [])
         
         ret_events = []
     
         for event in events:
             event_summary = event['summary']
-            event_start = GoogleCalendar.event_time_to_datetime(event['start'])
+            event_start = self.event_time_to_datetime(event['start'])
             ret_events.append({'start': event_start, 'summary': event_summary})
         
         return ret_events 
-
-
-    def __init__(self, client_secret_file, calendar_id):
-        self.service = GoogleCalendar.__get_calendar_service(client_secret_file)
-        self.calendar_id = calendar_id
