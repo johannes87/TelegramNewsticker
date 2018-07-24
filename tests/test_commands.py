@@ -70,27 +70,49 @@ class TestParseDatetimeFuture(unittest.TestCase):
 
         yesterday_day_month_str = yesterday.strftime('%d. %m')
         self.assert_date_equals(yesterday_day_month_str,
-                yesterday.day, yesterday.month, now.year + 1, '')
+                                yesterday.day,
+                                yesterday.month,
+                                now.year + 1,
+                                '')
         
         now_day_month_str = now.strftime('%d. %m.')
         self.assert_date_equals(now_day_month_str,
-                now.day, now.month, now.year, '')
+                                now.day,
+                                now.month,
+                                now.year,
+                                '')
 
         tomorrow_day_month_str = tomorrow.strftime('%d. %m. ')
         self.assert_date_equals(tomorrow_day_month_str,
-                tomorrow.day, tomorrow.month, tomorrow.year, ' ')
-
+                                tomorrow.day,
+                                tomorrow.month,
+                                tomorrow.year,
+                                ' ')
 
         yesterday_dmHM_str = yesterday.strftime('%d. %m. %H:%M')
         now_dmHM_str = now.strftime('%d. %m %H:%M')
         tomorrow_dmHM_str = tomorrow.strftime('%d.%m.  %H:%M')
 
-
         self.assert_datetime_equals(yesterday_dmHM_str,
-                yesterday.day, yesterday.month, now.year + 1, yesterday.hour, yesterday.minute, '')
+                                    yesterday.day,
+                                    yesterday.month,
+                                    now.year + 1,
+                                    yesterday.hour,
+                                    yesterday.minute,
+                                    '')
 
         self.assert_datetime_equals(now_dmHM_str,
-                now.day, now.month, now.year, now.hour, now.minute, '')
+                                    now.day,
+                                    now.month,
+                                    now.year,
+                                    now.hour,
+                                    now.minute,
+                                    '')
 
         self.assert_datetime_equals(tomorrow_dmHM_str,
-                tomorrow.day, tomorrow.month, tomorrow.year, tomorrow.hour, tomorrow.minute, '')
+                                    tomorrow.day,
+                                    tomorrow.month,
+                                    tomorrow.year,
+                                    tomorrow.hour,
+                                    tomorrow.minute,
+                                    '')
